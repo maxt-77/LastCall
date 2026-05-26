@@ -180,7 +180,44 @@ function closePaymentModal() { document.getElementById('payment-modal').classLis
 function processPayment() { const userCart = cart.filter(c => c.userEmail === currentUser.email); const btn = document.getElementById('btn-confirm-payment'); btn.innerHTML = '<i class="fa-solid fa-spinner fa-spin"></i> A processar...'; btn.disabled = true; setTimeout(() => { const dataStr = new Date().toLocaleDateString('pt-PT', {day:'2-digit', month:'short', year:'numeric'}).replace(/ de /g, ' '); userCart.forEach((item, idx) => { const pin = Math.floor(1000+Math.random()*9000).toString(); orders.push({ ...item, orderId: Date.now()+idx, status: 'pronto', pin: pin, dataCompra: dataStr }); const bIdx = baskets.findIndex(b=>b.id===item.id); if(bIdx!==-1 && baskets[bIdx].stock>0) baskets[bIdx].stock--; }); cart = cart.filter(c=>c.userEmail!==currentUser.email); saveData(); updateCartBadge(); btn.innerHTML = 'Pagar Agora'; btn.disabled=false; closePaymentModal(); showToast("Pagamento aprovado! Encomendas geradas."); showView('orders-view'); }, 1500); }
 
 // --- Encomendas (PIN visível) ---
-function renderOrders() { if (isRendering) return; isRendering = true; const userOrders = orders.filter(o=>o.userEmail===currentUser.email).sort((a,b)=>b.orderId-a.orderId); const container = document.getElementById('orders-container'); document.getElementById('orders-count').innerText = `${userOrders.length} encomendas`; container.innerHTML = userOrders.map(o => { const safePin = o.pin && o.pin !== "****" ? o.pin : "----"; const isLevantado = o.status === 'levantado'; const badgeClass = isLevantado ? 'status-levantado' : 'status-pronto'; const badgeText = isLevantado ? 'Levantado' : 'Pronto p/ levantar'; let footerHtml = ''; if (isLevantado) footerHtml = `<div class="d-flex align-items-center w-100"><span style="color:var(--medium-green); font-size:0.9rem;"><i class="fa-solid fa-star"></i><i class="fa-solid fa-star"></i><i class="fa-solid fa-star"></i><i class="fa-solid fa-star"></i><i class="fa-solid fa-star"></i> <span style="color:var(--text-muted); margin-left:5px;">Obrigado pela avaliação!</span></span></div>`; else footerHtml = `<div class="d-flex flex-column w-100 gap-2"><span style="color:var(--text-muted); font-size:0.85rem;"><i class="fa-regular fa-clock"></i> Dirige-te ao parceiro para levantar o teu cabaz.</span><div class="pin-display mt-3 mb-2"><span class="pin-label">Código de Levantamento</span><span class="pin-code">${safePin}</span></div></div>`; return `<div class="card-horizontal fade-in"><div class="card-h-main"><img src="${o.imagem}" class="card-h-img" style="${isLevantado ? 'opacity:0.6; filter: grayscale(50%);' : ''}"><div class="card-h-info"><div class="d-flex justify-content-between align-items-start"><div><h3>${o.nome}</h3><p class="subtitle" style="margin:0; color:var(--medium-green);">${o.parceiro}</p><p class="subtitle" style="font-size:0.75rem;">${o.dataCompra}</p></div><span class="status-badge ${badgeClass}">${badgeText}</span></div><div class="d-flex justify-content-end"><span style="font-weight:700; color:var(--dark-green); font-size:1.1rem;">${o.preco.toFixed(2)}€</span></div></div></div><div class="card-h-footer">${footerHtml}</div></div>`; }).join(''); isRendering = false; }
+function renderOrders() { 
+    if (isRendering) return; 
+    isRendering = true; 
+    const userOrders = orders.filter(o=>o.userEmail===currentUser.email).sort((a,b)=>b.orderId-a.orderId); 
+    const container = document.getElementById('orders-container'); 
+    document.getElementById('orders-count').innerText = `${userOrders.length} encomendas`; 
+    
+    container.innerHTML = userOrders.map(o => { 
+        const safePin = o.pin && o.pin !== "****" ? o.pin : "----"; 
+        const isLevantado = o.status === 'levantado'; 
+        const badgeClass = isLevantado ? 'status-levantado' : 'status-pronto'; 
+        const badgeText = isLevantado ? 'Levantado' : 'Pronto p/ levantar'; 
+        let footerHtml = ''; 
+        
+        if (isLevantado) {
+            footerHtml = `<div class="d-flex align-items-center w-100"><span style="color:var(--medium-green); font-size:0.9rem;"><i class="fa-solid fa-star"></i><i class="fa-solid fa-star"></i><i class="fa-solid fa-star"></i><i class="fa-solid fa-star"></i><i class="fa-solid fa-star"></i> <span style="color:var(--text-muted); margin-left:5px;">Obrigado pela avaliação!</span></span></div>`; 
+        } else {
+            // Adicionado o botão "Simular levantamento" no final da div para os cabazes não levantados
+            footerHtml = `<div class="d-flex flex-column w-100 gap-2"><span style="color:var(--text-muted); font-size:0.85rem;"><i class="fa-regular fa-clock"></i> Dirige-te ao parceiro para levantar o teu cabaz.</span><div class="pin-display mt-3 mb-2"><span class="pin-label">Código de Levantamento</span><span class="pin-code">${safePin}</span></div><button class="btn-primary w-100 mt-2" onclick="simularLevantamento(${o.orderId})">Simular levantamento</button></div>`; 
+        }
+        
+        return `<div class="card-horizontal fade-in"><div class="card-h-main"><img src="${o.imagem}" class="card-h-img" style="${isLevantado ? 'opacity:0.6; filter: grayscale(50%);' : ''}"><div class="card-h-info"><div class="d-flex justify-content-between align-items-start"><div><h3>${o.nome}</h3><p class="subtitle" style="margin:0; color:var(--medium-green);">${o.parceiro}</p><p class="subtitle" style="font-size:0.75rem;">${o.dataCompra}</p></div><span class="status-badge ${badgeClass}">${badgeText}</span></div><div class="d-flex justify-content-end"><span style="font-weight:700; color:var(--dark-green); font-size:1.1rem;">${o.preco.toFixed(2)}€</span></div></div></div><div class="card-h-footer">${footerHtml}</div></div>`; 
+    }).join(''); 
+    
+    isRendering = false;
+
+
+// Função para simular o levantamento
+    function simularLevantamento(orderId) {
+    const orderIndex = orders.findIndex(o => o.orderId === orderId);
+    if (orderIndex !== -1) {
+        orders[orderIndex].status = 'levantado';
+        saveData(); // Atualiza a localStorage
+        isRendering = false; // Força a re-renderização
+        renderOrders(); // Atualiza a interface
+        showToast("Cabaz levantado com sucesso!");
+    }
+}
 
 // --- Perfil ---
 function loadProfileData() { document.getElementById('profile-name').innerText = currentUser.name; document.getElementById('profile-email').innerText = currentUser.email; document.getElementById('profile-date').innerText = currentUser.memberSince || "Mai 2026"; const iniciais = currentUser.name.split(' ').map(n=>n[0]).join('').substring(0,2).toUpperCase(); document.getElementById('profile-avatar').innerText = iniciais; document.getElementById('header-avatar').innerText = iniciais; const userOrders = orders.filter(o=>o.userEmail===currentUser.email); let cabazes = userOrders.length; let poupado = userOrders.reduce((s,o)=>s+((o.precoOriginal||0)-o.preco),0); let co2 = userOrders.length*2.5; document.getElementById('stat-cabazes').innerText = cabazes; document.getElementById('stat-poupado').innerText = `${poupado.toFixed(0)}€`; document.getElementById('stat-co2').innerText = `${co2.toFixed(1)}kg`; document.getElementById('edit-name').value = currentUser.name; document.getElementById('edit-phone').value = currentUser.phone || ''; if(!currentUser.preferences) currentUser.preferences = { alergias: [], dietas: [] }; document.querySelectorAll('input[name="alergia"]').forEach(cb => cb.checked = currentUser.preferences.alergias.includes(cb.value)); document.querySelectorAll('input[name="dieta"]').forEach(cb => cb.checked = currentUser.preferences.dietas.includes(cb.value)); }
